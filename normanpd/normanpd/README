@@ -1,0 +1,187 @@
+Normanpd Assignment
+Zack White
+Dr. Christian Grant
+Intro to Text Analytics
+
+-------DESCRIPTION-------
+Downloads the activity reports pdf webpage.
+Downloads and saves all the pdfs of Daily Incidents
+Reads the pdfs and formats the data to be put into a database
+Creates a sqlite database named "normanpd.db" and a table names incidents
+The Rows for incident are (id INTEGER, number TEXT, date_time TEXT, location TEXT, nature TEXT, ORI TEXT)
+Populates the database with the pdf data
+Give the status of the database by giving the number of rows in the incidents table
+Output 5 random rows from incidents
+
+-------HOW TO INSTALL-------
+Once you have the files in which ever directory you've put it in. 
+Create and activate your Python3 virtual environment in the top most normanpd directory. (This program works with 3.4,3.5, and 3.6)
+then do the following commands:
+1. pip3 install -r requirements.txt
+2. pip3 install .
+3. python3 main.py
+
+The output should be the number of rows in the database and 5 random rows in the database.
+
+
+-------KNOWN BUGS-------
+If you run the program twice without removing the normanpd.db, the program will stop saying that TABLE incidents already exists
+They way around this is to remove normanpd.db by using bash command
+rm normanpd.db
+
+There are ways to over come this but i felt it best to just delete the whole database to see if it was consistantly giving the 
+	right number of rows and creating a databse as well as populationg the database.
+
+-------RESOURCES-------
+I used these for resources when writing the code
+www.programcreek.com/python/example/51069/pyPdf.PdfFileReader
+https://www.python.org/3/howto/urllibe2.htm
+stackoverflow.com/questions/2279706/select-random-row-from-an-sqlite-table
+pythonhosted.org/PyPDF2/PdfFileReader.html
+stackoverflow.com/questions/2481945/how-to-read-line-by-line-in-pdf-file-using-pypdf
+python3 docs
+sqlite docs
+python3 sqlite docs
+
+
+-------HOW THE CODE WORKS-------
+
+main.py
+
+main.py imports normanpd and then from normanpd we import norman.py (i notice the project asked to name it normanpd.py but this 
+was noticed right before everything was finsihed and the program worked so i left it)
+
+	main()
+		the program works as follows:
+		1. matches is set to equal the array of text of the pdf file names made when saving the pdf files found in fetchincidents()
+			matches will be used to put in extractincidients
+		2. incidents is set to an array of arrays that contain all the information found in the pdfs in extractincidents(matches)
+		3. creates a sqlite3 database and a table called incidents
+		4. populate the database with the data in incidents
+		5. check the status by counting printing out the rowcount in the table and 5 random rows using stdout
+
+norman.py
+
+norman.py imports: sys, sqlite3, re, urllib.request, PyPDF2
+
+norman.py has five methods: fetchincidents(), extractincidents(), createdb(), populatedb(), and status() 
+
+	fetchincidents()
+		Summary:
+		fetch incident downloads the info on the daily activity page on Normanpd's website, extracts the links for daily incident summary
+		the using regex, downloads the pdfs using links founds, and writes each pdf into a seperate file
+
+		The function works as follows:
+		1. returns an array of strings.
+		2. Using urllib.request, the method downloads the police daily activity website and uses regex to find all strings in the format of
+			\d{4}\-\d{2}\-\d{2}%20Daily%20Incident%20Summary\.pdf
+		   and puts it into an array
+		   So the string will look like YEAR-MONTH-DAY%20Daily%20Incident%20Summary.pdf
+		4. Start a for loop running the length of the array from above
+		5. Using the current iteration of the for loop, add the current string to the end of another string labeled pdfurl 
+			that will match the urls of the pdfs of the Daily Incident Summary
+		6. using urllib.request, the method downloads the pdf as fetchPDF
+		7. Opens a new txt file with the name of the current string in the array
+		8. Writes data in fetchPDF into the file and then closes the file
+		9. For loop runs again until array is finished
+		10. Returns the array so extractincidents can find the pdfs writen (since the pdfs are named after the strings in the array)
+		10. Function ends  
+
+	extractincidents(matches)
+		inputs an array of strings that will have the paths for the pdfs
+		outputs an array of arrays  that contain the information from the pdf
+
+		NOTE: this function fixes the randow newline in the location spot of the pdf data. This is addressed in steps 8 and 9 and brought
+			together in step 20		
+		
+		Summary:
+		This function extracts data from the pdfs found and formats it so the information can be put into a database later
+
+		The method works as follows:
+		1.creates an array called rawIncidents
+		2. starts a for loop that iterates the input. The input(matches) should be an array that contains the name of the files of the pdfs
+		3. open the pdf of that the current iteration in the  for loops 
+		4. using using PyPDF2.PdfFileReader to read the pdf
+		5. get the number of pages in the pdf
+		6. create a nested for loops that ranges the number of pages in the pdf
+		7. get the data of the current page
+		8. create an array named dates of all the date and time in the pdf page using a regex
+			\d{1,2}\/\d{1,2}\/\d{4} \d{1,2}\:\d{2}
+			month\day\year hour:minute
+		9. create a seperate array named sans_dates splitting pdf page info by the regex above
+		10.create an empty array names tempIncidents
+		11. start a nested for loop that runs to the number of dates in dates
+		12. create a string that named string that combines the current iteration in dates and current iteration + 1 in sans_dates
+		13. append the string to temp_inceident end foor loop
+		14. start a nested for loop that iterates the elements in tempIncidents
+		15. append to rawIncident that splits the iteration by \n
+		16. finished both for loops
+		17. create an empty array incidents
+		18. start a for loop that iterates the elements in rawIncidents
+		19. define the length of the iteration
+		20. There are 4 scenarios:
+			i. if the length = 2 then skip to the next iteration
+			ii. if the length = 6 or 8 then create an array named details of size 5 that puts the first 5 elements of the iteration in details
+				details = [i[0],i[1],i[2],[3],[4]]
+			iii.if length is 4 then create an array named details that puts the first 2 elements in the first to spots, put none for spots 3 and 4
+				and puts the third element of the iteration in the fifth spot of details
+				details = [i[0],i[1],none,none,i[2]]
+			iv. if the length is 7 or 9, then create a string that combines the 3rd and 4th element of the iteration 
+				then create an array named details that puts the first three elements of the iteration, the new string, and the sixth element
+				into details
+				details = [i[0],i[1],i[2],string,i[5]
+		21.append the details array to incidents
+		22. end for loops
+		23. return the incidents array
+
+	createdb()
+		Does not return anything
+
+		Summary:
+		This function creates the database normanpd.db and table incidents
+
+		The method works as follows:
+		1. create connection named conn. Connect string Normanpd.db
+		2. create a cursor named c
+		3. create a string named create "CREATE TABLE incidents (id INTERGER, number TEXT, date_time TEXT, location TEXT, nature TEXT, ori TEXT)
+		4. execute create c.execute(create)
+
+	populatedb(incidents)
+		inputs an array of arrays with the pdf data
+		Does not return anything
+
+		Summary:
+		This method populates database created normanpd.db with the pdf data array
+		1. create and connection and cursor likes steps 1 and 2 above
+		2. create an idnum and set it to 0
+		3. start a for loop that iterates incidents
+		3. for simplicity, make 5 elements to set to the element in the iterator
+			incidentNumber = i[1]
+			date_time = i[0]
+			location = i[2]
+			nature = i[3]
+			ORI = i[4]
+		4. create insert data that contains (idnum, incidentNumber, date_tie, location, nature, ORI)
+		5. execute the command INSERT INTO incidents VALUES (?,?,?,?,?,?) with insertdata. This puts data in to the database
+		6.increment idnum by 1
+		7. end for loop
+		8. commit and close the connection
+
+	status()
+		Does not rturn anything	
+ 		
+		Summary:
+		give the status of normanpd.db by give the row count in incidents and 5 random rows for the table
+
+		1. create connection and cursor like steps 1 and 2 in create db
+		2. create string named count that is "SELECT count(*) from incidents"
+		3. start a for loop that iterates the execution of count
+		4. set variable rowcount = to the iterator. also make the iterator a string
+		5. set sys.stdout.write for row count that removes the first character of the string and remove the last two characters.
+			also add a \n at the end of the string for neatness
+		6. create a string random set to SELECT * FROM incidents ORDER BY RANDOW() LIMIT 5
+			this select rows of random order with the limit of 5
+		7.create a for loop that iterator on the execution of random
+		8. stdout the string of the iterator with a newline
+		9. commit and close the connection
+
